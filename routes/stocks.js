@@ -14,30 +14,32 @@ const stocks = [
 
 router.get("/", async (req, res) => {
     try {
-        // Yahoo API URL
         const symbols = stocks.map(s => s.symbol).join(",");
         const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
 
         const response = await axios.get(url);
-        const data = response.data.quoteResponse.result;
+        const list = response.data.quoteResponse.result;
 
-        const finalData = stocks.map(stock => {
-            const yahoo = data.find(d => d.symbol === stock.symbol);
+        if (!list || list.length === 0) {
+            return res.status(500).json({ error: "No data from Yahoo Finance" });
+        }
+
+        const finalData = stocks.map(s => {
+            const d = list.find(i => i.symbol === s.symbol);
             return {
-                symbol: stock.symbol,
-                name: stock.name,
-                price: yahoo?.regularMarketPrice || null,
-                changePercent: yahoo?.regularMarketChangePercent || null
+                symbol: s.symbol,
+                name: s.name,
+                price: d?.regularMarketPrice ?? null,
+                changePercent: d?.regularMarketChangePercent ?? null
             };
         });
 
         res.json(finalData);
 
     } catch (err) {
-        console.error("Error fetching Yahoo data:", err);
+        console.error("Yahoo API Error:", err.message);
         res.status(500).json({ error: "Failed to fetch stock data" });
     }
 });
 
 module.exports = router;
-
